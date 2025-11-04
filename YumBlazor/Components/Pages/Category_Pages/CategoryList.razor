@@ -60,15 +60,16 @@ else
     {
         IsProcessing = true;
         // await wstrzymuje renderowanie w przeciwienstwie do Thread.Sleep
-        await Task.Yield();
-        LoadCategories();
+        //await Task.Yield(); // rendered
+        await LoadCategories();
+        //Thread.Sleep(2000);
         IsProcessing = false;
     }
 
-    private void LoadCategories()
+    private async Task LoadCategories()
     {
-        Thread.Sleep(5000);
+        //Thread.Sleep(5000);
         // Load Categories
-        Categories = categoryRepository.GetAll();
+        Categories = await categoryRepository.GetAllAsync();
     }
 }
