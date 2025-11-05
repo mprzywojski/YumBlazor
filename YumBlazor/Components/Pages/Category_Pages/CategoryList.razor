@@ -1,5 +1,8 @@
 ﻿@page "/category"
 @inject ICategoryRepository categoryRepository
+@inject IJSRuntime jsRuntime
+
+<YumBlazor.Components.Shared.BsModal OnModalConfirmation="ConfirmDelete_Click"></YumBlazor.Components.Shared.BsModal>
 
 @if (IsProcessing)
 {
@@ -47,7 +50,7 @@ else
                             <td>
                                 <a href="@($"category/update/{obj.Id}")" class="btn btn-primary">
                                     <i class="bi bi-pencil-square"></i>Edit</a>
-                                <button class="btn btn-danger"><i class="bi bi-trash3"></i>Delete</button>
+                                <button class="btn btn-danger" @onclick="() => HandleDelete(obj.Id)"><i class="bi bi-trash3"></i> Delete</button>
                             </td>
                         </tr>
                     }
@@ -60,6 +63,7 @@ else
 @code {
     private bool IsProcessing { get; set; } = false;
     private IEnumerable<Category> Categories { get; set; } = new List<Category>();
+    private int DeleteCategoryID { get; set; } = 0;
 
     /// podejscie przed renderowaniem
     // protected override async Task OnInitializedAsync()
@@ -95,5 +99,33 @@ else
         //Thread.Sleep(5000);
         // Load Categories
         Categories = await categoryRepository.GetAllAsync();
+    }
+
+    private void HandleDelete(int id)
+    {
+        DeleteCategoryID = id;
+        jsRuntime.InvokeVoidAsync("ShowConfirmationModal");
+    }
+
+    private async Task ConfirmDelete_Click(bool isConfirmed)
+    {
+        IsProcessing = true;
+        await jsRuntime.InvokeVoidAsync("HideConfirmationModal");
+
+        if (isConfirmed && DeleteCategoryID != 0)
+        {
+            var result = await categoryRepository.DeleteAsync(DeleteCategoryID);
+            if (result)
+            {
+                jsRuntime.ToastrSuccess("Category Delete Successfully");
+            }
+            else
+            {
+                jsRuntime.ToastrError("Category Delete Failed");
+            }
+            await LoadCategories();
+        }
+        DeleteCategoryID = 0;
+        IsProcessing = false;
     }
 }
