@@ -93,7 +93,7 @@ public class ProductRepository : IProductRepository
 
     public async Task<IEnumerable<Product>> GetAllAsync()
     {
-        return await _db.Products.ToListAsync();
+        return await _db.Products.Include(u => u.Category).ToListAsync();
     }
 
     public async Task<Product> UpdateAsync(Product obj)

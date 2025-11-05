@@ -4,6 +4,7 @@
 @inject IProductRepository productRepository
 @inject ICategoryRepository categoryRepository
 @inject NavigationManager navigationManager
+@inject IWebHostEnvironment webHostEnvironment
 @inject IJSRuntime jsRuntime
 
 @if (IsProcessing)
@@ -44,14 +45,29 @@ else
                     </div>
                     <div class="form-floating py-3 col-12">
                         <InputSelect @bind-Value="Product.CategoryId" class="form-select" id="Category">
-                        <option value="0" disabled selected>--Select Category--</option>
-                        @foreach (var category in categories)
-                        {
-                            <option value="@category.Id">@category.Name</option>
-                        }
+                            <option value="0" disabled selected>--Select Category--</option>
+                            @foreach (var category in categories)
+                            {
+                                <option value="@category.Id">@category.Name</option>
+                            }
                         </InputSelect>
                         <label for="Category">Category</label>
                         <ValidationMessage For="@(() => Product.CategoryId)" />
+                    </div>
+                    <div class="form-floating py-3 col-12">
+                        <InputFile OnChange="LoadFiles" class="form-control" id="customFile" accept="image/x-png,image/jpeg"> </InputFile>
+                        <label for="customFile">Upload Image</label>
+                        @if(Product.ImageUrl != null)
+                        {
+                            <div class="row pt-3">
+                                <div class="col-3">
+                                    <img src="@Product.ImageUrl" alt="..." class="img-thumbnail" />
+                                </div>
+                                <div class="col-md-9">
+                                    <i class="bi bi-trash btn btn-outline-danger" @onclick="DeleteIamge" > Remove</i>
+                                </div>
+                            </div>
+                        }
                     </div>
 
                     <div class="row mt-3">
@@ -83,7 +99,17 @@ else
 
     private IEnumerable<Category> categories = new List<Category>();
 
+    private string? directoryPath { get; set; }
+
+    //private bool isImageLoading { get; set; } = false;
+
     private bool IsProcessing { get; set; } = true;
+
+    protected override Task OnInitializedAsync()
+    {
+        directoryPath = Path.Combine(webHostEnvironment.WebRootPath, "images", "product");// wwwroot
+        return base.OnInitializedAsync();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -124,5 +150,45 @@ else
         IsProcessing = false;
 
         navigationManager.NavigateTo("product");
+    }
+
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        IsProcessing = true;
+        IBrowserFile file = e.File;
+        FileInfo fileInfo = new(file.Name);
+        string newFileName = $"{Guid.NewGuid()}.{fileInfo.Extension}";
+        if (!Directory.Exists(directoryPath))
+        {
+            Directory.CreateDirectory(directoryPath);
+        }
+        var path = Path.Combine(directoryPath, newFileName);
+
+        await using FileStream fileStream = new(path, FileMode.Create);
+        await file.OpenReadStream(file.Size).CopyToAsync(fileStream);
+        Product.ImageUrl = $"images/product/{newFileName}";
+        IsProcessing = false;
+    }
+
+    void DeleteIamge()
+    {
+        if (Product.ImageUrl == null)
+        {
+            return;
+        }
+
+        var fileToDelete = Product.ImageUrl.Split('/').Reverse().First();
+
+        var filePathToDeleteImage = Path.Combine(directoryPath, fileToDelete);
+
+        if (!File.Exists(filePathToDeleteImage))
+        {
+            return;
+        }
+
+        File.Delete(filePathToDeleteImage);
+
+        Product.ImageUrl = null;
+        return;
     }
 }
