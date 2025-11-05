@@ -2,6 +2,7 @@
 @page "/product/update/{id:int}"
 
 @inject IProductRepository productRepository
+@inject ICategoryRepository categoryRepository
 @inject NavigationManager navigationManager
 @inject IJSRuntime jsRuntime
 
@@ -17,7 +18,7 @@ else
         <div class="card-header bg-black bg-gradient m-lg-0 py-3">
             <div class="row">
                 <div class="col-12 text-center">
-                    <h2 class="text-white py-2">@(Id > 0 ? "Create" : "Update") Product</h2>
+                    <h2 class="text-white py-2">@(Id == 0 ? "Create" : "Update") Product</h2>
                 </div>
             </div>
         </div>
@@ -31,11 +32,32 @@ else
                         <label for="Name">Name</label>
                         <ValidationMessage For="@(() => Product.Name)" />
                     </div>
+                    <div class="form-floating py-3 col-12">
+                        <InputText @bind-Value="Product.Description" class="form-control" id="Description" placeholder="Description" />
+                        <label for="Description">Description</label>
+                        <ValidationMessage For="@(() => Product.Description)" />
+                    </div>
+                    <div class="form-floating py-3 col-12">
+                        <InputNumber @bind-Value="Product.Price" class="form-control" id="Price" placeholder="Price" />
+                        <label for="Price">Price</label>
+                        <ValidationMessage For="@(() => Product.Price)" />
+                    </div>
+                    <div class="form-floating py-3 col-12">
+                        <InputSelect @bind-Value="Product.CategoryId" class="form-select" id="Category">
+                        <option value="0" disabled selected>--Select Category--</option>
+                        @foreach (var category in categories)
+                        {
+                            <option value="@category.Id">@category.Name</option>
+                        }
+                        </InputSelect>
+                        <label for="Category">Category</label>
+                        <ValidationMessage For="@(() => Product.CategoryId)" />
+                    </div>
 
                     <div class="row mt-3">
                         <div class="col-6 col-md-3">
                             <button type="submit" class="btn btn-primary form-control" disabled="@IsProcessing">
-                                <i class="bi bi-floppy2-fill"></i> Update
+                                <i class="bi bi-floppy2-fill"></i> @(Id == 0 ? "Create" : "Update")
                             </button>
                         </div>
 
@@ -59,25 +81,28 @@ else
     [SupplyParameterFromForm]
     private Product Product { get; set; } = new Product();
 
+    private IEnumerable<Category> categories = new List<Category>();
+
     private bool IsProcessing { get; set; } = true;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            await LoadProduct();
+            await LoadProductAndCategoryList();
             IsProcessing = false;
             StateHasChanged();
         }
     }
 
-    private async Task LoadProduct()
+    private async Task LoadProductAndCategoryList()
     {
         if (Id > 0)
         {
             Product = await productRepository.GetAsync(Id);
         }
 
+        categories = await categoryRepository.GetAllAsync();
     }
 
     private async Task UpsertProduct()
